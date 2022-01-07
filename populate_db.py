@@ -1,4 +1,4 @@
-# some data for testing and presentation purposes
+# Базовое наполнение базы данных (для примера и тестирования)
 
 import os
 os.environ.setdefault('DJANGO_SETTINGS_MODULE',

@@ -6,7 +6,7 @@ from training_schedule.models import Schedule
 
 from django.core.exceptions import ObjectDoesNotExist
 
-
+# Для опциональной возможности искать тренировки по  пользователям
 class UserType(DjangoObjectType):
     class Meta:
         model = User
@@ -20,7 +20,6 @@ class ScheduleType(DjangoObjectType):
 
 
 class Query(graphene.ObjectType):
-    schedule_by_id = graphene.List(ScheduleType, id=graphene.ID(required=False))
     schedules = graphene.List(
         ScheduleType,
         start_date=graphene.String(required=False),
@@ -28,7 +27,12 @@ class Query(graphene.ObjectType):
         start_time=graphene.String(required=False),
         end_time=graphene.String(required=False)
     )
+    detail_by_id = graphene.Field(ScheduleType, id=graphene.ID(required=True))
+    user_by_id = graphene.Field(UserType, id=graphene.ID(required=True))
 
+    # Возвращает список расписание тренировок в пределах заданных параметров
+    # При отсутствии или ошибке возвращает расписание всех тренировок
+    # Сортировано по дате и времени
     def resolve_schedules(
             root, info,
             start_date="1970-01-01", end_date="2100-12-31",
@@ -44,15 +48,18 @@ class Query(graphene.ObjectType):
         except ValueError:
             return Schedule.objects.order_by('date', 'time').all()
 
-    def resolve_schedule_by_id(root, info, id=None):
-        # show all schedules if no id given
-        if not id:
-            return Schedule.objects.all()
+    # Возвращает детали тренировки по ID
+    def resolve_detail_by_id(root, info, id):
         try:
-            return Schedule.objects.filter(id=id).all()
+            return Schedule.objects.get(id=id)
         except ObjectDoesNotExist:
             return None
-        except ValueError:
-            return Schedule.objects.all()
+
+    # Возвращает детали тренировок пользователя по ID.
+    def resolve_user_by_id(self, info, id):
+        try:
+            return User.objects.get(id=id)
+        except ObjectDoesNotExist:
+            return None
 
 schema = graphene.Schema(query=Query)
